@@ -1,5 +1,5 @@
 import { ComponentType } from "@/types/types"
-import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension } from "./componentTemplates";
+import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions } from "./componentTemplates";
 
 export interface Component {
     id: string,
@@ -7,16 +7,30 @@ export interface Component {
     x: number,
     y: number,
     selected: boolean,
-    ports: string[]
+    inputPorts: string[],
+    outputPort: string
 }
 
 export interface IOComponent extends Component {
     value: boolean
 }
 
-export interface WireCompenent extends Component {
-    connectedFrom: string, // portid
-    connectedTo: string
+export interface WireType {
+    id: string,
+    type: ComponentType,
+    selected: boolean,
+    connectedFrom: string,
+    connectedTo: string,
+    startPoint: WireEndPoint,
+    endPoint: WireEndPoint
+}
+
+export interface WireEndPoint {
+    id: string,
+    x: number,
+    y: number,
+    parentId: string, //wire id
+    connectedToPort: boolean
 }
 
 export interface Port {
@@ -26,18 +40,22 @@ export interface Port {
     x: number,
     y: number,
     direction: "INPUT" | "OUTPUT", 
+    connectedWiresPorts: string[] //wireId
 }
 
 
 export default class CircuitGraph {
-    private components: Map<string, Component | IOComponent | WireCompenent> = new Map();
+    private components: Map<string, Component | IOComponent > = new Map();
     private ports: Map<string, Port> = new Map();
+    private wires: Map<string, WireType> = new Map();
+    private wireEndPoints: Map<string, WireEndPoint> = new Map();
     private numberOFIdsForEachComponent: Map<ComponentType, number> = new Map();
 
     // variables for initial dimensions
     private orGateDimensions: ORGateDimensions;
     private inputDimensions: InputDimensions;
     private outputDimensions: OutputDimensions;
+    private wireDimensions: WireDimensions;
 
 
     constructor() {
@@ -50,10 +68,12 @@ export default class CircuitGraph {
         this.numberOFIdsForEachComponent.set(ComponentType.XNOR, 0)
         this.numberOFIdsForEachComponent.set(ComponentType.NAND, 0)
         this.numberOFIdsForEachComponent.set(ComponentType.XOR, 0)
+        this.numberOFIdsForEachComponent.set(ComponentType.WIRE, 0)
 
         this.orGateDimensions = startPositionAndDimension(ComponentType.OR)
         this.inputDimensions = startPositionAndDimension(ComponentType.INPUT)
         this.outputDimensions = startPositionAndDimension(ComponentType.OUTPUT)
+        this.wireDimensions = startPositionAndDimension(ComponentType.WIRE)
 
     }
 
@@ -69,14 +89,14 @@ export default class CircuitGraph {
 
     addPort(component: Component | IOComponent) : void {
         if(component.type === ComponentType.OR) {
-            console.log("ABS: Positions: ", component.x, " ", component.y)
             const inputPort1: Port = {
                id: `${component.id}$A`,
                parentId: component.id,
                connected: false,
                x: component.x + this.orGateDimensions.inputAx,
                y: component.y + this.orGateDimensions.inputAy,
-               direction: "INPUT"  
+               direction: "INPUT",
+               connectedWiresPorts: []
             }
 
             const inputPort2: Port = {
@@ -85,7 +105,8 @@ export default class CircuitGraph {
                 connected: false,
                 x: component.x + this.orGateDimensions.inputBx,
                 y: component.y + this.orGateDimensions.inputBy,
-                direction: "INPUT"
+                direction: "INPUT",
+                connectedWiresPorts: []
             }
 
             const outputPort: Port = {
@@ -94,13 +115,15 @@ export default class CircuitGraph {
                 connected: false,
                 x: component.x + this.orGateDimensions.outputx,
                 y: component.y + this.orGateDimensions.outputy,
-                direction: "OUTPUT"
+                direction: "OUTPUT",
+                connectedWiresPorts: []
             }
 
             this.ports.set(inputPort1.id, inputPort1);
             this.ports.set(inputPort2.id, inputPort2);
             this.ports.set(outputPort.id, outputPort);
-            this.components.get(component.id)?.ports.push(inputPort1.id, inputPort2.id, outputPort.id)
+            component.inputPorts.push(inputPort1.id, inputPort2.id)
+            component.outputPort = outputPort.id
 
         } else if(component.type === ComponentType.INPUT) {
             const port: Port = {
@@ -109,11 +132,12 @@ export default class CircuitGraph {
                 connected: false,
                 x: component.x + this.inputDimensions.outputx,
                 y: component.y + this.inputDimensions.outputy,
-                direction: "OUTPUT"
+                direction: "OUTPUT",
+                connectedWiresPorts: []
             };
 
             this.ports.set(port.id, port);
-            this.components.get(component.id)?.ports.push(port.id)
+            component.outputPort = port.id
 
         } else if(component.type === ComponentType.OUTPUT) {
             const port: Port = {
@@ -122,33 +146,55 @@ export default class CircuitGraph {
                 connected: false,
                 x: component.x + this.outputDimensions.inputx,
                 y: component.y + this.outputDimensions.inputy,
-                direction: "INPUT"
+                direction: "INPUT",
+                connectedWiresPorts: []
             };
 
             this.ports.set(port.id, port);
-            this.components.get(component.id)?.ports.push(port.id)
+            component.inputPorts.push(port.id)
 
+        } 
+    }
+
+    newWireEndPoints(wireId: string): WireEndPoint[] {
+        const endPoint1: WireEndPoint = {
+            id: `${wireId}$A`,
+            x: this.wireDimensions.x1,
+            y: this.wireDimensions.y1,
+            parentId: wireId,
+            connectedToPort: false
+        } 
+
+        const endPoint2: WireEndPoint = {
+            id: `${wireId}$B`,
+            x: this.wireDimensions.x2,
+            y: this.wireDimensions.y2,
+            parentId: wireId,
+            connectedToPort: false
         }
+
+        this.wireEndPoints.set(endPoint1.id, endPoint1)
+        this.wireEndPoints.set(endPoint2.id, endPoint2)
+
+        return [endPoint1, endPoint2]
     }
     
     addComponent(x: number, y: number, componentType: ComponentType) : void {
         const newId: string = this.generateNewId(componentType);
-        let newComponent: Component | IOComponent | WireCompenent;
+        let newComponent: Component | IOComponent;
 
         if(componentType === ComponentType.WIRE) {
-
-            newComponent = {
+            const endPoints: WireEndPoint[] = this.newWireEndPoints(newId)
+            const newWire: WireType = {
                 id: newId,
                 type: componentType,
-                x: x,
-                y: y,
                 selected: false,
                 connectedFrom: "",
                 connectedTo: "",
-                ports: []
+                startPoint: endPoints[0],
+                endPoint: endPoints[1]
             }
-    
-            this.components.set(newId, newComponent)
+            this.wires.set(newId, newWire)
 
         } else if(componentType === ComponentType.INPUT || componentType === ComponentType.OUTPUT) {
             newComponent = {
@@ -158,7 +204,8 @@ export default class CircuitGraph {
                 y: y,
                 selected: false,
                 value: false,
-                ports: []
+                inputPorts: [],
+                outputPort: ""
             }
 
             this.components.set(newId, newComponent)
@@ -171,7 +218,8 @@ export default class CircuitGraph {
                 x: x,
                 y: y,
                 selected: false,
-                ports: []
+                inputPorts: [],
+                outputPort: ""
             }
 
             this.components.set(newId, newComponent)
@@ -181,6 +229,154 @@ export default class CircuitGraph {
 
         const count: number = this.numberOFIdsForEachComponent.get(componentType) || 0;
         this.numberOFIdsForEachComponent.set(componentType, count + 1)
+    }
+
+    addNewWireToComponentConnection(portId: string, wireEndPointId: string) : void {
+        const port: Port | undefined = this.ports.get(portId);
+        const wireEndPoint: WireEndPoint | undefined = this.wireEndPoints.get(wireEndPointId);
+
+        if(!port || !wireEndPoint) {
+            throw new Error(`${portId} or ${wireEndPointId} port does not exsit`)
+        }
+
+        const parentWireId: string = wireEndPoint.parentId
+        // again i have to put wirecomponents in different variable
+        const wire: WireType | undefined = this.wires.get(parentWireId)
+
+        if(!wire) {
+            throw new Error(`Wire with id: ${parentWireId} not found`)
+        }
+        
+        // return when multiple wires are trying to connect in same input port
+        if(port.connected && port.direction === "INPUT") return
+
+        port.connectedWiresPorts.push(wireEndPoint.id)
+        port.connected = true
+
+        if (port.direction === "INPUT") {
+            wire.connectedTo = port.id
+        } else {
+            wire.connectedFrom = port.id
+        }
+
+        if(wireEndPointId === wire.startPoint.id) {
+            wire.startPoint.x = port.x
+            wire.startPoint.y = port.y
+        } else {
+            wire.endPoint.x = port.x
+            wire.endPoint.y = port.y
+        }
+
+        wireEndPoint.x = port.x 
+        wireEndPoint.y = port.y 
+        wireEndPoint.connectedToPort = true
+        
+        const newWireEndPoint: WireEndPoint = {...wireEndPoint}
+        const newWire: WireType = { ...wire }
+        this.wires.set(parentWireId, newWire)
+        this.wireEndPoints.set(wireEndPointId, newWireEndPoint)
+    }
+
+
+    addNewWireToWireConnection(draggedEndPointId: string, targetEndPointId: string): void {
+        const draggedEndPoint: WireEndPoint | undefined = this.wireEndPoints.get(draggedEndPointId)
+        const targetEndPoint: WireEndPoint | undefined = this.wireEndPoints.get(targetEndPointId)
+
+        if (!draggedEndPoint || !targetEndPoint) {
+            throw new Error(`Wire Endpoints: ${draggedEndPointId} or ${targetEndPointId} does not exist`)
+        }
+
+        const draggedWire: WireType | undefined = this.wires.get(draggedEndPoint.parentId)
+        const targetWire: WireType | undefined = this.wires.get(targetEndPoint.parentId)
+
+        if (!draggedWire || !targetWire) {
+            throw new Error(`Wires: ${draggedEndPoint.parentId} or ${targetEndPoint.parentId} does not exist`)
+        }
+
+        // return if wire is connecting to itself
+        if(draggedWire.id === targetWire.id) return
+
+        // return if targer endpoint is already connected to a port
+        if(targetEndPoint.connectedToPort) return
+
+        // if both wire is getting signal from some port they cannot connect
+        if(draggedWire.connectedFrom && targetWire.connectedFrom) return
+
+        // if one of wire is receiving signal from some port connected wire should receive same signal
+        if(draggedWire.connectedFrom) {
+            targetWire.connectedFrom = draggedWire.connectedFrom
+        } else {
+            draggedWire.connectedFrom = targetWire.connectedFrom
+        }
+
+        if(draggedEndPoint.id === draggedWire.startPoint.id) {
+            draggedWire.startPoint.x = targetEndPoint.x
+            draggedWire.startPoint.y = targetEndPoint.y
+        } else {
+            draggedWire.endPoint.x = targetEndPoint.x
+            draggedWire.endPoint.y = targetEndPoint.y
+        }
+
+        draggedEndPoint.x = targetEndPoint.x
+        draggedEndPoint.y = targetEndPoint.y
+
+        const newDraggedEndPoint: WireEndPoint = {...draggedEndPoint}
+        const newDraggedWire: WireType = {...draggedWire}
+        const newTargetWire: WireType = {...targetWire}
+        this.wires.set(draggedWire.id, newDraggedWire)
+        this.wires.set(targetWire.id, newTargetWire)
+        this.wireEndPoints.set(draggedEndPointId, newDraggedEndPoint)
+    }
+
+    updateWirePositionOnDrag(wireEndPointId: string, x: number, y: number) : void {
+        const endPoint: WireEndPoint | undefined = this.wireEndPoints.get(wireEndPointId)
+        
+        if(!endPoint) {
+            throw new Error(`Wire Endpoint with id: ${wireEndPointId} not found`)
+        }
+
+        const wire: WireType | undefined = this.wires.get(endPoint.parentId)
+
+        if(!wire) {
+            throw new Error(`Wire with id: ${endPoint.parentId} not found`)
+        }
+
+        if(wire.startPoint.id === wireEndPointId) {
+            wire.startPoint.x = x
+            wire.startPoint.y = y
+        } else {
+            wire.endPoint.x = x
+            wire.endPoint.y = y
+        }
+
+        endPoint.x = x
+        endPoint.y = y
+
+        const newEndPoint: WireEndPoint = {...endPoint}
+        const newWire: WireType = {...wire}
+        this.wires.set(wire.id, newWire)
+        this.wireEndPoints.set(endPoint.id, newEndPoint)
+    }
+
+    updateConnectedWirePosition(wirePortId: string, x: number, y: number): void {
+        const endPoint: string = wirePortId.split("$")[1]
+        const wirePort: WireEndPoint | undefined = this.wireEndPoints.get(wirePortId)
+
+        if(!wirePort) {
+            throw new Error(`Wire port: ${wirePortId} not Found`)
+        }
+        
+        const wire: WireType | undefined = this.wires.get(wirePort.parentId)
+
+        if(!wire) {
+            throw new Error(`Wire with id: ${wirePort.parentId} not found`)
+        }
+
+        wirePort.x = x
+        wirePort.y = y
+
+        const newWire: WireType = {...wire}
+        this.wires.set(wirePort.parentId, newWire)
     }
 
     updatePortPositionOnDrag(portId: string, componentType: ComponentType, x: number, y: number) {
@@ -209,6 +405,7 @@ export default class CircuitGraph {
                 port.y = y + this.orGateDimensions.outputy
             }
 
+
         } else if (componentType === ComponentType.INPUT) {
 
             port.x = x + this.inputDimensions.outputx
@@ -219,12 +416,29 @@ export default class CircuitGraph {
             port.x = x + this.outputDimensions.inputx;
             port.y = y + this.outputDimensions.inputy;
 
+        } else if (componentType === ComponentType.WIRE) {
+            
+            const id: string = portId.split("$")[1]
+
+            if(id === "A") {
+
+                port.x = x + this.wireDimensions.x1
+                port.y = y + this.wireDimensions.y1
+            } else {
+
+                port.x = x + this.wireDimensions.x2
+                port.y = y + this.wireDimensions.y2
+            }
         }
         
+        for(const wireId of port.connectedWiresPorts) {
+            this.updateConnectedWirePosition(wireId, port.x, port.y)
+        }
+
     }
 
     updatePositionOnDrag(id: string, x: number, y: number) : void {
-        const component: Component | IOComponent | WireCompenent |undefined = this.components.get(id)
+        const component: Component | IOComponent |undefined = this.components.get(id)
 
         if(!component) {
             throw new Error(`Component does not exist for component id: ${id}`)
@@ -233,9 +447,11 @@ export default class CircuitGraph {
         component.x = x;
         component.y = y;
 
-        for(let i = 0; i < component.ports.length; i++) {
-            this.updatePortPositionOnDrag(component.ports[i], component.type, x, y)
+        for(let i = 0; i < component.inputPorts.length; i++) {
+            this.updatePortPositionOnDrag(component.inputPorts[i], component.type, x, y)
         }
+
+        this.updatePortPositionOnDrag(component.outputPort, component.type, x, y)
     }
     
     getComponents() : Component[] | IOComponent[] {
@@ -244,5 +460,13 @@ export default class CircuitGraph {
 
     getPorts() : Port[] {
         return Array.from(this.ports.values())
+    }
+
+    getWires() : WireType[] {
+        return Array.from(this.wires.values())
+    }
+
+    getWireEndPoints(): WireEndPoint[] {
+        return Array.from(this.wireEndPoints.values())
     }
 }

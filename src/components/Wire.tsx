@@ -5,24 +5,34 @@ import { Circle, Group, Line } from "react-konva"
 
 export default function Wire(props: WireProps) {
 
-    const [ lineStartPoints, setLineStartPoints ] = useState<number[]>([50, 120])
-    const [ lineEndPoints, setLineEndPoints ] = useState<number[]>([210, 120])
+
+    const { wire } = props
+    const [ lineStartPoints, setLineStartPoints ] = useState<number[]>([wire.startPoint.x, wire.startPoint.y])
+    const [ lineEndPoints, setLineEndPoints ] = useState<number[]>([wire.endPoint.x, wire.endPoint.y])
     const startCircleRef = useRef<Konva.Circle | null>(null)
     const endCircleRef = useRef<Konva.Circle | null>(null)
+    const [ lineColor, setLineColor ] = useState<string>("black")
 
     function startPointDragged(e: Konva.KonvaEventObject<DragEvent>): void {
-        setLineStartPoints([e.target.getAbsolutePosition().x, e.target.getAbsolutePosition().y])
+        const x: number = e.target.getAbsolutePosition().x
+        const y: number = e.target.getAbsolutePosition().y
+        setLineStartPoints([x, y])
+        props.onWireEndPointDragged(props.wire.startPoint.id, x, y)
     }
 
     function endPointDragged(e: Konva.KonvaEventObject<DragEvent>): void {
-        setLineEndPoints([e.target.getAbsolutePosition().x, e.target.getAbsolutePosition().y])
+        const x: number = e.target.getAbsolutePosition().x
+        const y: number = e.target.getAbsolutePosition().y
+        setLineEndPoints([x, y])
+        props.onWireEndPointDragged(props.wire.endPoint.id, x, y)
     }
 
     useEffect(() : void => {
         requestAnimationFrame(() => {
-
+            setLineStartPoints([wire.startPoint.x, wire.startPoint.y]);
+            setLineEndPoints([wire.endPoint.x, wire.endPoint.y]);
         })
-    }, [])
+    }, [wire])
 
     function calculateDistance(x1: number, y1: number, x2: number, y2: number): number {
         const distance: number = Math.sqrt(Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2))
@@ -30,20 +40,42 @@ export default function Wire(props: WireProps) {
     }
 
     function dock(e: Konva.KonvaEventObject<DragEvent>): void {
+        const threshold = 7
         const circleX: number = e.target.getAbsolutePosition().x;
         const circleY: number = e.target.getAbsolutePosition().y;
+        const {ports, wireEndPoints} = props
 
-        for (let i = 0; i < props.ports.length; i++) {
-            const targetX: number = props.ports[i].x;
-            const targetY: number = props.ports[i].y;
-                
+        for (let i = 0; i < ports.length; i++) {
+            const targetX: number = ports[i].x;
+            const targetY: number = ports[i].y;
+
             const distance: number = calculateDistance(circleX, circleY, targetX, targetY);
             
-            if(distance <= 7) {
-                if(e.target.attrs.anchor === "line_end") {
-                    setLineEndPoints([targetX, targetY])
+            if(distance <= threshold) {
+                if(e.target.attrs.anchor === "A") {
+                    props.onNewWireToComponentConnection(ports[i].id, props.wire.startPoint.id)
+                    setLineStartPoints([props.wire.startPoint.x, props.wire.startPoint.y])
                 } else {
-                    setLineStartPoints([targetX, targetY])
+                    props.onNewWireToComponentConnection(ports[i].id, props.wire.endPoint.id)
+                    setLineEndPoints([props.wire.endPoint.x, props.wire.endPoint.y])
+                }
+
+            }
+        }
+
+        for (let i = 0; i < props.wireEndPoints.length; i++) {
+            const targetX: number = wireEndPoints[i].x;
+            const targetY: number = wireEndPoints[i].y;
+
+            const distance: number = calculateDistance(circleX, circleY, targetX, targetY);
+            
+            if(distance <= threshold) {
+                if(e.target.attrs.anchor === "A") {
+                    props.onNewWireToWireConnection(props.wire.startPoint.id, wireEndPoints[i].id)
+                    setLineStartPoints([props.wire.startPoint.x, props.wire.startPoint.y])
+                } else {
+                    props.onNewWireToWireConnection(props.wire.endPoint.id, wireEndPoints[i].id)
+                    setLineEndPoints([props.wire.endPoint.x, props.wire.endPoint.y])
                 }
             }
         }
@@ -58,10 +90,11 @@ export default function Wire(props: WireProps) {
             <Group>
                 <Line
                   points={[...lineStartPoints, ...lineEndPoints]}
-                  stroke="blace"
+                  stroke={lineColor}
                   strokeWidth={3}
                   lineCap="round"
                   lineJoin="round"
+                  hitStrokeWidth={20}
                 />
                 <Circle
                     x={lineStartPoints[0]}
@@ -70,7 +103,7 @@ export default function Wire(props: WireProps) {
                     stroke="blue"
                     strokeWidth={3}
                     draggable
-                    anchor="line_start"
+                    anchor="A"
                     onDragMove={startPointDragged}
                     ref={startCircleRef}
                     onDragEnd={handleDragEnd}
@@ -82,7 +115,7 @@ export default function Wire(props: WireProps) {
                     stroke="blue"
                     strokeWidth={3}
                     draggable
-                    anchor="line_end"
+                    anchor="B"
                     onDragMove={endPointDragged}
                     ref={endCircleRef}
                     onDragEnd={handleDragEnd}

@@ -1,4 +1,4 @@
-import { Port } from "@/logic/CircuitGraph"
+import { Port, WireEndPoint, WireType } from "@/logic/CircuitGraph"
 
 export enum ComponentType {
     INPUT = "INPUT",
@@ -18,7 +18,12 @@ export type ToolbarProps = {
 }
 
 export type WireProps = {
-    ports: Port[]
+    ports: Port[],
+    wire: WireType,
+    wireEndPoints: WireEndPoint[],
+    onNewWireToComponentConnection: (portId: string, wireId: string) => void,
+    onNewWireToWireConnection: (wireEndPoint1: string, wireEndPoint2: string) => void,
+    onWireEndPointDragged: (wireEndPointId: string, x: number, y: number) => void
 }
 
 export type OrGateProps = {

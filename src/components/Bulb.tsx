@@ -1,6 +1,6 @@
 import Konva from "konva";
 import { useRef, useState, useEffect } from "react";
-import { BulbProps, DockPoint } from "@/types/types";
+import { BulbProps } from "@/types/types";
 import { Group, Circle, Text, Line } from "react-konva";
 
 export function Bulb(props: BulbProps) {

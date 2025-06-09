@@ -34,10 +34,20 @@ export interface OutputDimensions {
   inputy: number;
 }
 
+export interface WireDimensions {
+  x: number,
+  y: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+}
+
 type ComponentTypeMap = {
   [ComponentType.OR]: ORGateDimensions;
   [ComponentType.INPUT]: InputDimensions;
   [ComponentType.OUTPUT]: OutputDimensions;
+  [ComponentType.WIRE]: WireDimensions;
 };
 
 export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
@@ -78,6 +88,14 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
       pinLength: 10,
       inputx: -20,
       inputy: 0
+    },
+    [ComponentType.WIRE]: {
+      x: 0,
+      y: 0,
+      x1: 50,
+      y1: 120,
+      x2: 210,
+      y2: 120
     }
   };
 
