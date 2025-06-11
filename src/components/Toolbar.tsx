@@ -5,7 +5,8 @@ const componentTypes: { type: ComponentType; label: string }[] = [
   { type: ComponentType.OR, label: "OR" },
   { type: ComponentType.INPUT, label: "Input" },
   { type: ComponentType.OUTPUT, label: "Output" },
-  { type: ComponentType.WIRE, label: "wire" }
+  { type: ComponentType.WIRE, label: "Wire" },
+  { type: ComponentType.JUNCTION, label: "Junction" }
 ];
 
 export default function Toolbar(props : ToolbarProps) {

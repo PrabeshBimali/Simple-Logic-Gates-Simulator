@@ -1,5 +1,5 @@
 import { ComponentType } from "@/types/types"
-import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions } from "./componentTemplates";
+import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions, JunctionDimensions } from "./componentTemplates";
 
 export interface Component {
     id: string,
@@ -7,8 +7,7 @@ export interface Component {
     x: number,
     y: number,
     selected: boolean,
-    inputPorts: string[],
-    outputPort: string
+    ports: string[]
 }
 
 export interface IOComponent extends Component {
@@ -39,7 +38,7 @@ export interface Port {
     connected: boolean,
     x: number,
     y: number,
-    direction: "INPUT" | "OUTPUT", 
+    direction: "INPUT" | "OUTPUT" | "BOTH", 
     connectedWiresPorts: string[] //wireId
 }
 
@@ -56,6 +55,7 @@ export default class CircuitGraph {
     private inputDimensions: InputDimensions;
     private outputDimensions: OutputDimensions;
     private wireDimensions: WireDimensions;
+    private junctionDimensions: JunctionDimensions;
 
 
     constructor() {
@@ -69,11 +69,13 @@ export default class CircuitGraph {
         this.numberOFIdsForEachComponent.set(ComponentType.NAND, 0)
         this.numberOFIdsForEachComponent.set(ComponentType.XOR, 0)
         this.numberOFIdsForEachComponent.set(ComponentType.WIRE, 0)
+        this.numberOFIdsForEachComponent.set(ComponentType.JUNCTION, 0)
 
         this.orGateDimensions = startPositionAndDimension(ComponentType.OR)
         this.inputDimensions = startPositionAndDimension(ComponentType.INPUT)
         this.outputDimensions = startPositionAndDimension(ComponentType.OUTPUT)
         this.wireDimensions = startPositionAndDimension(ComponentType.WIRE)
+        this.junctionDimensions = startPositionAndDimension(ComponentType.JUNCTION)
 
     }
 
@@ -122,8 +124,7 @@ export default class CircuitGraph {
             this.ports.set(inputPort1.id, inputPort1);
             this.ports.set(inputPort2.id, inputPort2);
             this.ports.set(outputPort.id, outputPort);
-            component.inputPorts.push(inputPort1.id, inputPort2.id)
-            component.outputPort = outputPort.id
+            component.ports.push(inputPort1.id, inputPort2.id, outputPort.id)
 
         } else if(component.type === ComponentType.INPUT) {
             const port: Port = {
@@ -137,7 +138,7 @@ export default class CircuitGraph {
             };
 
             this.ports.set(port.id, port);
-            component.outputPort = port.id
+            component.ports.push(port.id)
 
         } else if(component.type === ComponentType.OUTPUT) {
             const port: Port = {
@@ -151,8 +152,54 @@ export default class CircuitGraph {
             };
 
             this.ports.set(port.id, port);
-            component.inputPorts.push(port.id)
+            component.ports.push(port.id)
 
+        } else if(component.type === ComponentType.JUNCTION) {
+            const portA: Port = {
+                id: `${component.id}$A`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.junctionDimensions.portAx,
+                y: component.x  + this.junctionDimensions.portAy,
+                direction: "BOTH", //Both because port direction  will change based on input,
+                connectedWiresPorts: []
+            }
+            
+            const portB: Port = {
+                id: `${component.id}$B`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.junctionDimensions.portBx,
+                y: component.x  + this.junctionDimensions.portBy,
+                direction: "BOTH", //Both because port direction  will change based on input,
+                connectedWiresPorts: []
+            }
+            
+            const portC: Port = {
+                id: `${component.id}$C`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.junctionDimensions.portCx,
+                y: component.x  + this.junctionDimensions.portCy,
+                direction: "BOTH", //Both because port direction  will change based on input,
+                connectedWiresPorts: []
+            }
+            
+            const portD: Port = {
+                id: `${component.id}$D`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.junctionDimensions.portDx,
+                y: component.x  + this.junctionDimensions.portDy,
+                direction: "BOTH", //Both because port direction  will change based on input,
+                connectedWiresPorts: []
+            }
+
+            this.ports.set(portA.id, portA)
+            this.ports.set(portB.id, portB)
+            this.ports.set(portC.id, portC)
+            this.ports.set(portD.id, portD)
+            component.ports.push(portA.id, portB.id, portC.id, portD.id)
         } 
     }
 
@@ -204,8 +251,7 @@ export default class CircuitGraph {
                 y: y,
                 selected: false,
                 value: false,
-                inputPorts: [],
-                outputPort: ""
+                ports: []
             }
 
             this.components.set(newId, newComponent)
@@ -218,8 +264,7 @@ export default class CircuitGraph {
                 x: x,
                 y: y,
                 selected: false,
-                inputPorts: [],
-                outputPort: ""
+                ports: []
             }
 
             this.components.set(newId, newComponent)
@@ -447,11 +492,9 @@ export default class CircuitGraph {
         component.x = x;
         component.y = y;
 
-        for(let i = 0; i < component.inputPorts.length; i++) {
-            this.updatePortPositionOnDrag(component.inputPorts[i], component.type, x, y)
+        for(let i = 0; i < component.ports.length; i++) {
+            this.updatePortPositionOnDrag(component.ports[i], component.type, x, y)
         }
-
-        this.updatePortPositionOnDrag(component.outputPort, component.type, x, y)
     }
     
     getComponents() : Component[] | IOComponent[] {

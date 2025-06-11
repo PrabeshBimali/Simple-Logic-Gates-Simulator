@@ -9,6 +9,7 @@ import { Bulb } from './Bulb';
 import Toolbar from '@/components/Toolbar';
 import CircuitGraph, { IOComponent, Component, Port, WireType, WireEndPoint } from '@/logic/CircuitGraph';
 import Wire from './Wire';
+import Junction from './Junction';
 
 export default function Playground() {
 
@@ -104,6 +105,9 @@ export default function Playground() {
 
                     case ComponentType.OUTPUT:
                       return <Bulb key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
+
+                    case ComponentType.JUNCTION:
+                      return <Junction key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
                   
                     default:
                       break;

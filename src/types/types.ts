@@ -10,7 +10,8 @@ export enum ComponentType {
     NOR = "NOR",
     XOR = "XOR",
     XNOR = "XNOR",
-    WIRE = "WIRE"
+    WIRE = "WIRE",
+    JUNCTION = "JUNCTION"
 }
 
 export type ToolbarProps = {
@@ -37,6 +38,11 @@ export type BulbProps = {
 }
 
 export type SwitchProps = {
+    updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
+    componentId: string
+}
+
+export type JunctionProps = {
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
     componentId: string
 }

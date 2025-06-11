@@ -43,11 +43,23 @@ export interface WireDimensions {
   y2: number
 }
 
+export interface JunctionDimensions {
+  portAx: number,
+  portAy: number,
+  portBx: number,
+  portBy: number,
+  portCx: number,
+  portCy: number,
+  portDx: number,
+  portDy: number,
+}
+
 type ComponentTypeMap = {
   [ComponentType.OR]: ORGateDimensions;
   [ComponentType.INPUT]: InputDimensions;
   [ComponentType.OUTPUT]: OutputDimensions;
   [ComponentType.WIRE]: WireDimensions;
+  [ComponentType.JUNCTION]: JunctionDimensions
 };
 
 export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
@@ -96,6 +108,16 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
       y1: 120,
       x2: 210,
       y2: 120
+    },
+    [ComponentType.JUNCTION]: {
+      portAx: 0,
+      portAy: -15,
+      portBx: 0,
+      portBy: 15,
+      portCx: -15,
+      portCy: 0,
+      portDx: 15,
+      portDy: 0
     }
   };
 
