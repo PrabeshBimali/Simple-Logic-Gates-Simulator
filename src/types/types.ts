@@ -21,28 +21,30 @@ export type ToolbarProps = {
 export type WireProps = {
     ports: Port[],
     wire: WireType,
-    wireEndPoints: WireEndPoint[],
     onNewWireToComponentConnection: (portId: string, wireId: string) => void,
-    onNewWireToWireConnection: (wireEndPoint1: string, wireEndPoint2: string) => void,
     onWireEndPointDragged: (wireEndPointId: string, x: number, y: number) => void
 }
 
 export type OrGateProps = {
     updateComponentPositionOnDrag: (componentId: string, x: number, y:number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
     componentId: string
 }
 
 export type BulbProps = {
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
     componentId: string
 }
 
 export type SwitchProps = {
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
     componentId: string
 }
 
 export type JunctionProps = {
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
     componentId: string
 }

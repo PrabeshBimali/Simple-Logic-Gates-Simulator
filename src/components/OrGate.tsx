@@ -10,15 +10,21 @@ export default function OrGate(props: OrGateProps) {
 
     useEffect((): void => {
         requestAnimationFrame(() => {
-            updateDockPoints()
+            updatePortsOnDragEnd()
         })
     }, [])
 
-    function updateDockPoints(): void {
+    function updatePortsOnDragEnd(): void {
         if(!groupRef.current) {
             return
         }
         props.updateComponentPositionOnDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
+    }
+
+    function updatePortsOnDrag(): void {
+        if(!groupRef.current) return
+
+        props.updateConnectedWirePositionOnComponentDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
     }
 
     const width = 120
@@ -29,7 +35,7 @@ export default function OrGate(props: OrGateProps) {
 
     return (
         <>
-            <Group x={100} y={120} draggable ref={groupRef} onDragEnd={() => updateDockPoints()}>
+            <Group x={100} y={120} draggable ref={groupRef} onDragMove={() => updatePortsOnDrag()} onDragEnd={() => updatePortsOnDragEnd()}>
                 <Shape
                     width={width}
                     height={height}

@@ -18,7 +18,6 @@ export default function Playground() {
   const [ visualComponents, setVisualComponents ] = useState<Component[] | IOComponent[]>([])
   const [ ports, setPorts ] = useState<Port[]>([])
   const [wires, setWires] = useState<WireType[]>([])
-  const [wireEndPoints, setWireEndPoints] = useState<WireEndPoint[]>([])
   const circuitGraphRef = useRef<CircuitGraph>(new CircuitGraph())
 
   function addNewComponent(x: number, y: number, type: ComponentType) : void {
@@ -26,49 +25,37 @@ export default function Playground() {
     const components = circuitGraphRef.current.getComponents()
     const ports = circuitGraphRef.current.getPorts()
     const wires = circuitGraphRef.current.getWires()
-    const wireEndPoints = circuitGraphRef.current.getWireEndPoints()
     setVisualComponents([...components])
     setPorts([...ports])
     setWires([...wires])
-    setWireEndPoints([...wireEndPoints])
   }
 
   function updateComponentPositionOnDrag(componentId: string, x: number, y: number) : void {
-    circuitGraphRef.current.updatePositionOnDrag(componentId, x, y);
+    circuitGraphRef.current.updateComponentPositionOnDragEnd(componentId, x, y);
     const components = circuitGraphRef.current.getComponents()
     const ports = circuitGraphRef.current.getPorts()
     setVisualComponents([...components])
     setPorts([...ports])
   }
 
-  function onNewWireToComponentConnection(portId: string, wirePortId: string): void {
-    circuitGraphRef.current.addNewWireToComponentConnection(portId, wirePortId);
+  function onNewWireToComponentConnection(portId: string, wireEndPointId: string): void {
+    circuitGraphRef.current.addNewWireToComponentConnection(portId, wireEndPointId);
     const components = circuitGraphRef.current.getComponents()
     const ports = circuitGraphRef.current.getPorts()
-    const wireEndPoints = circuitGraphRef.current.getWireEndPoints()
     setVisualComponents([...components])
     setPorts([...ports])
-    setWireEndPoints([...wireEndPoints])
-  }
-  
-  function onNewWireToWireConnection(wireEndPointId1: string, wireEndPointId2: string) : void {
-    circuitGraphRef.current.addNewWireToWireConnection(wireEndPointId1, wireEndPointId2);
-    const components = circuitGraphRef.current.getComponents()
-    const ports = circuitGraphRef.current.getPorts()
-    const wireEndPoints = circuitGraphRef.current.getWireEndPoints()
-    const wires = circuitGraphRef.current.getWires()
-    setVisualComponents([...components])
-    setPorts([...ports])
-    setWireEndPoints([...wireEndPoints])
-    setWires([...wires])
   }
 
   function onWireEndPointDragged(wireEndPointId: string, x: number, y: number) {
-    circuitGraphRef.current.updateWirePositionOnDrag(wireEndPointId, x, y)
-    const wireEndPoints = circuitGraphRef.current.getWireEndPoints()
+    circuitGraphRef.current.updateWireEndPointPositionOnDrag(wireEndPointId, x, y)
     const wires = circuitGraphRef.current.getWires()
-    setWireEndPoints([...wireEndPoints])
     setWires([...wires])
+  }
+
+  function updateConnectedWirePositionOnComponentDrag(componentId: string, x: number, y: number) {
+    circuitGraphRef.current.updateConnectedWireEndPointPositionOnComponentDrag(componentId, x, y)
+    const wires = circuitGraphRef.current.getWires()
+    setWires(wires)
   }
 
   const updateCanvas = () : void => {
@@ -98,16 +85,36 @@ export default function Playground() {
                 visualComponents.map((component) => {
                   switch (component.type) {
                     case ComponentType.OR:
-                      return <OrGate key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
+                      return <OrGate 
+                                key={component.id} 
+                                componentId={component.id} 
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}              
+                              />
                   
                     case ComponentType.INPUT:
-                      return <SimpleSwitch key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
+                      return <SimpleSwitch 
+                                key={component.id} 
+                                componentId={component.id} 
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}  
+                              />
 
                     case ComponentType.OUTPUT:
-                      return <Bulb key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
+                      return <Bulb 
+                                key={component.id} 
+                                componentId={component.id} 
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}
+                                />
 
                     case ComponentType.JUNCTION:
-                      return <Junction key={component.id} componentId={component.id} updateComponentPositionOnDrag={updateComponentPositionOnDrag}/>
+                      return <Junction 
+                              key={component.id} 
+                              componentId={component.id} 
+                              updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                              updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}
+                            />
                   
                     default:
                       break;
@@ -121,9 +128,7 @@ export default function Playground() {
                           key={wire.id} 
                           ports={ports} 
                           wire={wire} 
-                          wireEndPoints={wireEndPoints} 
                           onNewWireToComponentConnection={onNewWireToComponentConnection}
-                          onNewWireToWireConnection={onNewWireToWireConnection}
                           onWireEndPointDragged={onWireEndPointDragged}
                         />
                 })

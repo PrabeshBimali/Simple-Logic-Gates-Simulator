@@ -43,7 +43,7 @@ export default function Wire(props: WireProps) {
         const threshold = 7
         const circleX: number = e.target.getAbsolutePosition().x;
         const circleY: number = e.target.getAbsolutePosition().y;
-        const {ports, wireEndPoints} = props
+        const {ports} = props
 
         for (let i = 0; i < ports.length; i++) {
             const targetX: number = ports[i].x;
@@ -60,23 +60,6 @@ export default function Wire(props: WireProps) {
                     setLineEndPoints([props.wire.endPoint.x, props.wire.endPoint.y])
                 }
 
-            }
-        }
-
-        for (let i = 0; i < props.wireEndPoints.length; i++) {
-            const targetX: number = wireEndPoints[i].x;
-            const targetY: number = wireEndPoints[i].y;
-
-            const distance: number = calculateDistance(circleX, circleY, targetX, targetY);
-            
-            if(distance <= threshold) {
-                if(e.target.attrs.anchor === "A") {
-                    props.onNewWireToWireConnection(props.wire.startPoint.id, wireEndPoints[i].id)
-                    setLineStartPoints([props.wire.startPoint.x, props.wire.startPoint.y])
-                } else {
-                    props.onNewWireToWireConnection(props.wire.endPoint.id, wireEndPoints[i].id)
-                    setLineEndPoints([props.wire.endPoint.x, props.wire.endPoint.y])
-                }
             }
         }
     }

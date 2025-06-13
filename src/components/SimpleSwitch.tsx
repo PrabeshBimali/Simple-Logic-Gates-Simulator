@@ -17,14 +17,21 @@ export function SimpleSwitch(props: SwitchProps) {
 
     useEffect((): void => {
         requestAnimationFrame(() => {
-            updateDockPoints()
+            updatePositionOnDragEnd()
         })
     }, [])
     
-    function updateDockPoints() : void {
+    function updatePositionOnDragEnd() : void {
         if(!groupRef.current) return
         
         props.updateComponentPositionOnDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
+    }
+
+    
+    function updatePortsOnDrag(): void {
+        if(!groupRef.current) return
+
+        props.updateConnectedWirePositionOnComponentDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
     }
 
     function handleMouseOut(e: Konva.KonvaEventObject<MouseEvent>): void {
@@ -44,7 +51,8 @@ export function SimpleSwitch(props: SwitchProps) {
             onClick={() => {setIsOn(!isOn)}}
             onMouseOver={handleMouseOver}
             onMouseOut={handleMouseOut}
-            onDragEnd={() => updateDockPoints()}
+            onDragEnd={() => updatePositionOnDragEnd()}
+            onDragMove={()=> updatePortsOnDrag()}
         >
             <Rect
                 width={width}

@@ -12,17 +12,22 @@ export function Bulb(props: BulbProps) {
 
     useEffect((): void => {
         requestAnimationFrame(() => {
-            updateDockPoints()
+            updatePortsOnDragEnd()
         })
     }, [])
 
-    function updateDockPoints() : void {
+    function updatePortsOnDragEnd() : void {
       if(!groupRef.current) return
-      props.updateComponentPositionOnDrag(props.componentId, groupRef.current?.getAbsolutePosition().x, groupRef.current?.getAbsolutePosition().y)
+      props.updateComponentPositionOnDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
+    }
+
+    function updatePortsOnDrag() : void {
+      if(!groupRef.current) return
+      props.updateConnectedWirePositionOnComponentDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
     }
 
     return (
-        <Group x={300} y={400} ref={groupRef} draggable onDragEnd={() => updateDockPoints()}>
+        <Group x={300} y={400} ref={groupRef} draggable onDragEnd={() => updatePortsOnDragEnd()} onDragMove={() => updatePortsOnDrag()}>
             {/* Glow effect */}
             <Circle
               x={0}
