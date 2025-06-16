@@ -7,11 +7,13 @@ export default function Wire(props: WireProps) {
 
 
     const { wire } = props
+    const [selected, setSelected] = useState(props.wire.selected)
+    const [startPointConnected, setStartPointConnected] = useState(props.wire.startPoint.connectedToPort)
+    const [endPointConnected, setEndPointConnected] = useState(props.wire.endPoint.connectedToPort)
     const [ lineStartPoints, setLineStartPoints ] = useState<number[]>([wire.startPoint.x, wire.startPoint.y])
     const [ lineEndPoints, setLineEndPoints ] = useState<number[]>([wire.endPoint.x, wire.endPoint.y])
     const startCircleRef = useRef<Konva.Circle | null>(null)
     const endCircleRef = useRef<Konva.Circle | null>(null)
-    const [ lineColor, setLineColor ] = useState<string>("black")
 
     function startPointDragged(e: Konva.KonvaEventObject<DragEvent>): void {
         const x: number = e.target.getAbsolutePosition().x
@@ -33,6 +35,15 @@ export default function Wire(props: WireProps) {
             setLineEndPoints([wire.endPoint.x, wire.endPoint.y]);
         })
     }, [wire])
+
+    useEffect((): void => {
+        setSelected(props.wire.selected)
+    }, [props.wire.selected])
+
+    useEffect((): void => {
+        setStartPointConnected(props.wire.startPoint.connectedToPort)
+        setEndPointConnected(props.wire.endPoint.connectedToPort)
+    }, [props.wire, props.wire])
 
     function calculateDistance(x1: number, y1: number, x2: number, y2: number): number {
         const distance: number = Math.sqrt(Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2))
@@ -68,16 +79,38 @@ export default function Wire(props: WireProps) {
         dock(e)
     }
 
+    function handleMouseOver(e: Konva.KonvaEventObject<MouseEvent>): void {
+        const stage: Konva.Stage | null = e.target.getStage()
+        if(stage) {
+            stage.container().style.cursor = "pointer"
+        }
+    }
+
+    function handleMouseOut(e: Konva.KonvaEventObject<MouseEvent>): void {
+        const stage: Konva.Stage | null = e.target.getStage()
+        if(stage) {
+            stage.container().style.cursor = "default"
+        }
+    }
+
+    function selectOrDiselect() {
+        props.onSelectOrDiselectWire(props.wire.id)
+    }
+
     return (
         <>
             <Group>
                 <Line
                   points={[...lineStartPoints, ...lineEndPoints]}
-                  stroke={lineColor}
+                  stroke={selected ? "blue" : "black"}
+                  shadowBlur={selected ? 3 : 0}
                   strokeWidth={3}
                   lineCap="round"
                   lineJoin="round"
                   hitStrokeWidth={20}
+                  onMouseDown={selectOrDiselect}
+                  onMouseOver={handleMouseOver}
+                  onMouseOut={handleMouseOut}
                 />
                 <Circle
                     x={lineStartPoints[0]}
@@ -85,7 +118,7 @@ export default function Wire(props: WireProps) {
                     radius={7}
                     stroke="blue"
                     strokeWidth={3}
-                    draggable
+                    draggable={!startPointConnected}
                     anchor="A"
                     onDragMove={startPointDragged}
                     ref={startCircleRef}
@@ -97,7 +130,7 @@ export default function Wire(props: WireProps) {
                     radius={7}
                     stroke="blue"
                     strokeWidth={3}
-                    draggable
+                    draggable={!endPointConnected}
                     anchor="B"
                     onDragMove={endPointDragged}
                     ref={endCircleRef}

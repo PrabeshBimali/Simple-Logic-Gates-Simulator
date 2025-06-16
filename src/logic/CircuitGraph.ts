@@ -1,5 +1,6 @@
 import { ComponentType } from "@/types/types"
 import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions, JunctionDimensions } from "./componentTemplates";
+import LogicDag from "./LogicDAG";
 
 export interface Component {
     id: string,
@@ -7,12 +8,10 @@ export interface Component {
     x: number,
     y: number,
     selected: boolean,
-    ports: string[]
+    ports: string[],
+    value: boolean | null
 }
 
-export interface IOComponent extends Component {
-    value: boolean
-}
 
 export interface WireType {
     id: string,
@@ -44,11 +43,15 @@ export interface Port {
 
 
 export default class CircuitGraph {
-    private components: Map<string, Component | IOComponent > = new Map();
+    private components: Map<string, Component> = new Map();
     private ports: Map<string, Port> = new Map();
     private wires: Map<string, WireType> = new Map();
     private wireEndPoints: Map<string, WireEndPoint> = new Map();
+    private outputComponentsId: Array<string> = new Array();
+    private selectedComponentsId: Array<string> = new Array();
+    private selectedWiresId: Array<string> = new Array();
     private numberOFIdsForEachComponent: Map<ComponentType, number> = new Map();
+    private logicDag: LogicDag =  new LogicDag()
 
     // variables for initial dimensions
     private orGateDimensions: ORGateDimensions;
@@ -89,7 +92,7 @@ export default class CircuitGraph {
         return newId
     }
 
-    addPort(component: Component | IOComponent) : void {
+    addPort(component: Component) : void {
         if(component.type === ComponentType.OR) {
             const inputPort1: Port = {
                id: `${component.id}$A`,
@@ -228,7 +231,11 @@ export default class CircuitGraph {
     
     addComponent(x: number, y: number, componentType: ComponentType) : void {
         const newId: string = this.generateNewId(componentType);
-        let newComponent: Component | IOComponent;
+        let newComponent: Component;
+
+        if(componentType !== ComponentType.WIRE) {
+            this.logicDag.addNode(newId, componentType)
+        }
 
         if(componentType === ComponentType.WIRE) {
             const endPoints: WireEndPoint[] = this.newWireEndPoints(newId)
@@ -243,7 +250,8 @@ export default class CircuitGraph {
             }
             this.wires.set(newId, newWire)
 
-        } else if(componentType === ComponentType.INPUT || componentType === ComponentType.OUTPUT) {
+        } else if(componentType === ComponentType.INPUT) {
+
             newComponent = {
                 id: newId,
                 type: componentType,
@@ -257,6 +265,22 @@ export default class CircuitGraph {
             this.components.set(newId, newComponent)
             this.addPort(newComponent)
 
+        } else if(componentType === ComponentType.OUTPUT) {
+
+            newComponent = {
+                id: newId,
+                type: componentType,
+                x: x,
+                y: y,
+                selected: false,
+                value: null,
+                ports: []
+            }
+
+            this.components.set(newId, newComponent)
+            this.addPort(newComponent)
+            this.outputComponentsId.push(newId)
+
         } else{
             newComponent = {
                 id: newId,
@@ -264,7 +288,8 @@ export default class CircuitGraph {
                 x: x,
                 y: y,
                 selected: false,
-                ports: []
+                ports: [], 
+                value: null
             }
 
             this.components.set(newId, newComponent)
@@ -274,6 +299,29 @@ export default class CircuitGraph {
 
         const count: number = this.numberOFIdsForEachComponent.get(componentType) || 0;
         this.numberOFIdsForEachComponent.set(componentType, count + 1)
+    }
+
+    addNewConnectionOnDag(port: Port, wire: WireType) {
+        if(wire.connectedFrom) {
+            const connectedPort: Port | undefined = this.ports.get(wire.connectedFrom)
+
+            if(!connectedPort) {
+                throw new Error(`Port with ID: ${wire.connectedFrom} not found`)
+            }
+
+            this.logicDag.addNewEdge(connectedPort.parentId, port.parentId)
+            this.evaluateDagAndRerender()
+
+        } else if(wire.connectedTo) {
+            const connectedPort: Port | undefined = this.ports.get(wire.connectedTo)
+
+            if(!connectedPort) {
+                throw new Error(`Port with ID: ${wire.connectedTo} not found`)
+            }
+
+            this.logicDag.addNewEdge(port.parentId, connectedPort.parentId)
+            this.evaluateDagAndRerender()
+        }
     }
 
     addNewWireToComponentConnection(portId: string, wireEndPointId: string) : void {
@@ -293,7 +341,9 @@ export default class CircuitGraph {
         }
         
         // return when multiple wires are trying to connect in same port. User will use junction to share outpur values
-        if(port.connected) return
+        if(port.connected) {
+            throw new Error(`Cannot connect multiple wires to same Port. Port ID: ${portId}`)
+        }
 
         const component: Component | undefined = this.components.get(port.parentId)
 
@@ -334,6 +384,23 @@ export default class CircuitGraph {
             }
         }
 
+        if(port.direction === "INPUT" && wire.connectedTo) {
+            throw new Error(`Cannot Connect two Inputs`)
+        }
+
+        if(port.direction === "OUTPUT" && wire.connectedFrom) {
+            throw new Error(`Cannot Connect two Outputs`)
+        }
+
+        if(wire.connectedTo || wire.connectedFrom) {
+            try{
+                this.addNewConnectionOnDag(port, wire)
+            } catch(e) {
+                console.error(e)
+                return
+            }
+        }
+
         port.connectedWiresEndPoints.push(wireEndPoint.id)
         port.connected = true
 
@@ -346,9 +413,11 @@ export default class CircuitGraph {
         if(wireEndPointId === wire.startPoint.id) {
             wire.startPoint.x = port.x
             wire.startPoint.y = port.y
+            wire.startPoint.connectedToPort = true
         } else {
             wire.endPoint.x = port.x
             wire.endPoint.y = port.y
+            wire.endPoint.connectedToPort = true
         }
 
         wireEndPoint.x = port.x 
@@ -457,7 +526,7 @@ export default class CircuitGraph {
     }
 
     updateComponentPositionOnDragEnd(id: string, x: number, y: number) : void {
-        const component: Component | IOComponent |undefined = this.components.get(id)
+        const component: Component |undefined = this.components.get(id)
 
         if(!component) {
             throw new Error(`Component does not exist for component id: ${id}`)
@@ -605,10 +674,233 @@ export default class CircuitGraph {
         }
 
         this.updateConnectedWireEndPointsToPortPositionsOnDrag(port)
+    }
+
+    updateValueOnSwitchClicked(id: string) {
+        const component: Component | undefined = this.components.get(id)
+
+        if (!component) {
+            throw new Error(`updateIOComponentsValueOnDagUpdate: IOComponent with ID ${id} does not exist`)
+        }
+
+        component.value = !component.value
+
+        const newComponent: Component = {...component}
+        this.components.set(id, newComponent)
+        this.logicDag.setValueById(id, newComponent.value)
+        this.evaluateDagAndRerender()
+    }
+
+    evaluateDagAndRerender() {
+        if(this.outputComponentsId.length < 1) {
+            return
+        }
+
+        this.logicDag.evaluateGraph()
+        
+        for (const id of this.outputComponentsId) {
+            const component: Component | undefined = this.components.get(id)
+            if (!component) {
+                throw new Error(`component with ID ${id} does not exist`)
+            }
+            const newValue = this.logicDag.getNodeValueById(id)
+            component.value = newValue
+
+            const newComponent = {...component}
+            this.components.set(id, newComponent)
+        }
+    }
+
+    selectOrDeselectAComponent(id: string) {
+        const component: Component | undefined = this.components.get(id)
+
+        if(!component) {
+            throw new Error(`Component with ID: ${id} not found`)
+        }
+
+        component.selected = !component.selected
+        const newComponent: Component = {...component}
+        this.components.set(id, newComponent)
+
+        if (newComponent.selected) {
+            this.selectedComponentsId.push(id)
+        } else {
+            const newSelectedComponents = this.selectedComponentsId.filter(val => val !== id)
+            this.selectedComponentsId = newSelectedComponents
+        }
+    }
+
+    deleteSelectedComponents() {
+        for (const id of this.selectedComponentsId) {
+            this.deleteAComponent(id)
+        }
+    }
+
+    deleteAComponent(id: string): void {
+        console.log(this.components)
+        const component: Component | undefined = this.components.get(id)
+        
+        if(!component) {
+            throw new Error(`Component with ID: ${id} does not exist`)
+        }
+
+        for(const portId of component.ports) {
+            const port: Port | undefined = this.ports.get(portId)
+
+            if(!port) {
+                throw new Error(`Port with ID ${portId} does not exist`)
+            }
+
+            // if port is not connected delete port and continue to next loop
+            if(!port.connected) {
+                this.ports.delete(portId)
+                continue;
+            }
+
+            // since port can be connected to only one wire, we just get 0 index value from connectedWireEndPoints array
+            // it can be changed in future if a output port can have multiple wires
+
+            const wireEndPointId: string = port.connectedWiresEndPoints[0]
+            const wireEndPoint: WireEndPoint | undefined = this.wireEndPoints.get(wireEndPointId)
+
+            if(!wireEndPoint) {
+                throw new Error(`WireEndPoint with ID: ${wireEndPointId} does not exist`)
+            }
+
+            const wireId: string = wireEndPoint.parentId
+            const wire: WireType | undefined = this.wires.get(wireId)
+
+            if(!wire) {
+                throw new Error(`Wire with ID: ${wireId} does not exist`)
+            }
+
+            // depending on port direction delete "to" or "from" from the connected wire
+            if(port.direction === "OUTPUT") {
+                wire.connectedFrom = ""
+            } else {
+                wire.connectedTo = ""
+            }
+
+            wireEndPoint.connectedToPort = false
+
+            if(wireEndPointId === wire.startPoint.id) {
+                wire.startPoint.connectedToPort = false
+            } else {
+                wire.endPoint.connectedToPort = false
+            }
+
+            const newWireEndPoint = {...wireEndPoint}
+            const newWire = {...wire}
+
+            this.wireEndPoints.set(wireEndPointId, newWireEndPoint)
+            this.wires.set(wireId, newWire)
+
+            // delete the port
+            this.ports.delete(portId)
+        }
+        
+        this.components.delete(id)
+
+        // remove deleted components from selected components
+        const newSelectedComponents: string[] = this.selectedComponentsId.filter(val => val !== id)
+        this.selectedComponentsId = newSelectedComponents
+
+        if(component.type === ComponentType.OUTPUT) {
+            const newOutputComponentsId: string[] = this.outputComponentsId.filter(val => val !== component.id)
+            this.outputComponentsId = newOutputComponentsId
+        }
+
+        // delete node and evaluate graph again
+        this.logicDag.deleteNodeById(id)
+        this.evaluateDagAndRerender()
 
     }
+
+    selectOrDiselectAWire(wireId: string) {
+        const wire: WireType | undefined = this.wires.get(wireId)
+
+        if(!wire) {
+            throw new Error(`Wire with ID: ${wireId} does not exist`)
+        }
+
+        wire.selected = !wire.selected
+        const newWire: WireType = {...wire}
+        this.wires.set(wireId, newWire)
+
+        if(newWire.selected) {
+            this.selectedWiresId.push(wireId)
+        } else {
+            const newSelectedWiresId: string[] = this.selectedWiresId.filter(val => val !== wireId)
+            this.selectedWiresId = newSelectedWiresId
+        }
+    }
+
+    deleteSelectedWires() {
+        for (const wireId of this.selectedWiresId) {
+            this.deleteAWire(wireId)
+        }
+    }
+
+    deleteAWire(id: string) {
+        const wire: WireType | undefined = this.wires.get(id)
+
+        if(!wire) {
+            throw new Error(`Wire with ID: ${id} does not exist`)
+        }
+
+        this.wireEndPoints.delete(wire.startPoint.id)
+        this.wireEndPoints.delete(wire.endPoint.id)
+
+
+        if(wire.connectedFrom === "" && wire.connectedTo === "") {
+            this.wires.delete(id)
+        } else {
+            if(wire.connectedFrom) {
+                const fromPort: Port | undefined = this.ports.get(wire.connectedFrom)
+
+                if(!fromPort) {
+                    throw new Error(`Port with ID: ${wire.connectedFrom} does not exist`)
+                }
+
+                fromPort.connected = false
+                fromPort.connectedWiresEndPoints = [] // since there is only one wire connetion possible. this should be string not array
+                const newFromPort: Port = {...fromPort}
+                this.ports.set(newFromPort.id, newFromPort)
+            }
+            
+            if(wire.connectedTo) {
+                const toPort: Port | undefined = this.ports.get(wire.connectedTo)
+
+                if(!toPort) {
+                    throw new Error(`Port with ID: ${wire.connectedTo} does not exist`)
+                }
+
+                toPort.connected = false
+                toPort.connectedWiresEndPoints = [] // since there is only one wire connetion possible. this should be string not array
+                const newFromPort: Port = {...toPort}
+                this.ports.set(newFromPort.id, newFromPort)
+            }
+        }
+
+        const newSelectedWiresId: string[] = this.selectedWiresId.filter(val => val !== id)
+        this.selectedWiresId = newSelectedWiresId
+        this.wires.delete(id)
+
+        // delete connection in DAG
+        if(wire.connectedFrom && wire.connectedTo) {
+            const fromPort: Port | undefined = this.ports.get(wire.connectedFrom)
+            const toPort: Port | undefined = this.ports.get(wire.connectedTo)
+
+            if(!fromPort || !toPort) {
+                throw new Error(`Port with ID: ${wire.connectedFrom} or ${wire.connectedTo} does not exist`)
+            }
+
+            this.logicDag.deleteAnEdge(fromPort.parentId, toPort.parentId)
+            this.evaluateDagAndRerender()
+        }
+    }
     
-    getComponents() : Component[] | IOComponent[] {
+    getComponents() : Component[] {
         return Array.from(this.components.values()) 
     }
 

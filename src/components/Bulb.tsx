@@ -6,7 +6,8 @@ import { Group, Circle, Text, Line } from "react-konva";
 export function Bulb(props: BulbProps) {
 
 
-    const [isOn, setIsOn] = useState<boolean>(true)
+    const [isOn, setIsOn] = useState<boolean|null>(props.value)
+    const [selected, setSelected] = useState<boolean>(props.selected)
     const groupRef = useRef<Konva.Group | null>(null)
 
 
@@ -15,6 +16,14 @@ export function Bulb(props: BulbProps) {
             updatePortsOnDragEnd()
         })
     }, [])
+
+    useEffect((): void => {
+      setSelected(props.selected)
+    }, [props.selected])
+
+    useEffect((): void => {
+      setIsOn(props.value)
+    }, [props.value])
 
     function updatePortsOnDragEnd() : void {
       if(!groupRef.current) return
@@ -26,15 +35,27 @@ export function Bulb(props: BulbProps) {
       props.updateConnectedWirePositionOnComponentDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
     }
 
+    function onComponentClicked() : void {
+      props.onSelectOrDeslectAComponent(props.componentId)
+    }
+
     return (
-        <Group x={300} y={400} ref={groupRef} draggable onDragEnd={() => updatePortsOnDragEnd()} onDragMove={() => updatePortsOnDrag()}>
+        <Group 
+          x={300} 
+          y={400} 
+          ref={groupRef} 
+          draggable 
+          onDragEnd={() => updatePortsOnDragEnd()} 
+          onDragMove={() => updatePortsOnDrag()}
+          onClick={() => onComponentClicked()}
+        >
             {/* Glow effect */}
             <Circle
               x={0}
               y={0}
               radius={15}
               fill="yellow"
-              opacity={isOn ? 0.6 : 0}
+              opacity={isOn === null ? 0 : (isOn ? 0.6: 0)}
               shadowBlur={20}
             />
 
@@ -43,14 +64,15 @@ export function Bulb(props: BulbProps) {
               x={0}
               y={0}
               radius={10}
-              fill={isOn ? "yellow" : "#ccc"}
-              stroke="black"
+              fill={isOn === null ? "#ccc" : (isOn ? "yellow" : "red")}
+              stroke= {selected ? "blue" : "black" }
+              shadowBlur={selected ? 5 : 0}
               strokeWidth={2}
             />
 
             {/* Label */}
             <Text
-              text={`${isOn ? "ON" : "OFF"}`}
+              text={`${isOn === null ? "X" : (isOn ? "ON" : "OFF")}`}
               x={-25}
               y={15}
               fontSize={10}
@@ -62,7 +84,8 @@ export function Bulb(props: BulbProps) {
             {/* Port */ }
             <Line
                 points={[-10, 0, -20, 0]}
-                stroke="black"
+                stroke= {selected ? "blue" : "black" }
+                shadowBlur={selected ? 5 : 0}
                 strokeWidth={3}
             />
 

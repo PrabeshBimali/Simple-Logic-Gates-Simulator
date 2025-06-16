@@ -5,8 +5,9 @@ import { Circle, Group, Label, Line, Rect, Tag, Text } from "react-konva";
 
 export function SimpleSwitch(props: SwitchProps) {
 
-    const [isOn, setIsOn] = useState<boolean>(false)
+    const [isOn, setIsOn] = useState<boolean | null>(props.value)
     const groupRef = useRef<Konva.Group | null>(null)
+    const [selected, setSelected] = useState<boolean>(props.selected)
 
     function handleMouseOver(e: Konva.KonvaEventObject<MouseEvent>): void {
         const stage: Konva.Stage | null = e.target.getStage()
@@ -20,6 +21,11 @@ export function SimpleSwitch(props: SwitchProps) {
             updatePositionOnDragEnd()
         })
     }, [])
+
+    useEffect(() : void => {
+        setIsOn(props.value)
+        setSelected(props.selected)
+    }, [props.value, props.selected])
     
     function updatePositionOnDragEnd() : void {
         if(!groupRef.current) return
@@ -41,46 +47,61 @@ export function SimpleSwitch(props: SwitchProps) {
         }
     }
 
-    const width = 20
-    const height = 20
-    const pinLength = 10
+    function onSwitchClicked(e: Konva.KonvaEventObject<MouseEvent>): void {
+        props.onSwitchClicked(props.componentId)
+        e.cancelBubble = true
+        //updte isOn using use Effect
+    }
+
+    function onComponentClicked(): void {
+        props.onSelectOrDeslectAComponent(props.componentId)
+    }
+
+    const width = 30
+    const height = 30
+    const pinLength = 15
     return (
         <Group x={100} y={120} 
             ref={groupRef}
             draggable 
-            onClick={() => {setIsOn(!isOn)}}
-            onMouseOver={handleMouseOver}
-            onMouseOut={handleMouseOut}
             onDragEnd={() => updatePositionOnDragEnd()}
             onDragMove={()=> updatePortsOnDrag()}
+            onClick={() => onComponentClicked()}
+            onMouseOver={handleMouseOver}
+            onMouseOut={handleMouseOut}
         >
             <Rect
                 width={width}
                 height={height}
                 fill="white"
-                stroke="black"
+                stroke={selected ? "blue" : "black"}
                 strokeWidth={3}
+                shadowBlur={selected ? 5: 0}
             />
             <Circle
                 x={width/2}
                 y={height/2}
-                radius={7}
+                radius={9}
                 stroke="black"
-                fill={`${isOn ? "green" : "red"}`}
+                fill={`${isOn ? "#1ff21f" : "red"}`}
                 strokeWidth={2}
+                onClick={onSwitchClicked}
             />
             <Line 
                 points={[width, height/2, width+pinLength, height/2]}
                 strokeWidth={2}
-                stroke="black"
+                stroke={ selected ? "blue" : "black"}
+                shadowBlur={selected ? 5: 0}
             />
             <Label x={0} y={height+2} opacity={0.75}>
                 <Tag fill="white" />
                 <Text
+                    width={width}
                     text={`${isOn ? "ON" : "OFF"}`}
                     fontFamily="Calibri"
                     fontSize={10}
-                    padding={3}
+                    padding={4}
+                    align="center"
                     fill="black"
                 />
             </Label> 
@@ -88,7 +109,8 @@ export function SimpleSwitch(props: SwitchProps) {
                 x={width+pinLength}
                 y={height/2}
                 radius={7}
-                stroke="black"
+                stroke={selected ? "blue" : "black"}
+                shadowBlur={selected ? 5 : 0}
                 strokeWidth={3} 
             />
         </Group>

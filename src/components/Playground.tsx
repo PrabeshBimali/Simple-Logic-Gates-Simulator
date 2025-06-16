@@ -7,7 +7,7 @@ import { ComponentType } from '@/types/types';
 import { SimpleSwitch } from './SimpleSwitch';
 import { Bulb } from './Bulb';
 import Toolbar from '@/components/Toolbar';
-import CircuitGraph, { IOComponent, Component, Port, WireType, WireEndPoint } from '@/logic/CircuitGraph';
+import CircuitGraph, { Component, Port, WireType } from '@/logic/CircuitGraph';
 import Wire from './Wire';
 import Junction from './Junction';
 
@@ -15,7 +15,7 @@ export default function Playground() {
 
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const canvasContainerRef = useRef<HTMLDivElement>(null)
-  const [ visualComponents, setVisualComponents ] = useState<Component[] | IOComponent[]>([])
+  const [ visualComponents, setVisualComponents ] = useState<Component[]>([])
   const [ ports, setPorts ] = useState<Port[]>([])
   const [wires, setWires] = useState<WireType[]>([])
   const circuitGraphRef = useRef<CircuitGraph>(new CircuitGraph())
@@ -58,6 +58,24 @@ export default function Playground() {
     setWires(wires)
   }
 
+  function onSwitchClicked(componentId: string): void {
+    circuitGraphRef.current.updateValueOnSwitchClicked(componentId)
+    const components = circuitGraphRef.current.getComponents()
+    setVisualComponents([...components])
+  }
+
+  function onSelectOrDeselectAComponent(componentId: string) : void {
+    circuitGraphRef.current.selectOrDeselectAComponent(componentId)
+    const components = circuitGraphRef.current.getComponents()
+    setVisualComponents([...components])
+  }
+
+  function onSelectOrDeselectAWire(wireId: string): void {
+    circuitGraphRef.current.selectOrDiselectAWire(wireId)
+    const newWires: WireType[] = circuitGraphRef.current.getWires()
+    setWires([...newWires])
+  }
+
   const updateCanvas = () : void => {
       if (canvasContainerRef.current) {
         const { offsetWidth, offsetHeight } = canvasContainerRef.current;
@@ -70,6 +88,23 @@ export default function Playground() {
     updateCanvas();
     window.addEventListener("resize", updateCanvas);
     return () => window.removeEventListener("resize", updateCanvas);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Backspace') {
+            circuitGraphRef.current.deleteSelectedComponents()
+            circuitGraphRef.current.deleteSelectedWires()
+            const newComponents: Component[] = circuitGraphRef.current.getComponents()
+            const newWires: WireType[] = circuitGraphRef.current.getWires()
+            setVisualComponents(newComponents)
+            setWires(newWires)
+            e.preventDefault();
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -88,32 +123,43 @@ export default function Playground() {
                       return <OrGate 
                                 key={component.id} 
                                 componentId={component.id} 
+                                selected={component.selected}
                                 updateComponentPositionOnDrag={updateComponentPositionOnDrag}
                                 updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}              
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
                               />
                   
                     case ComponentType.INPUT:
                       return <SimpleSwitch 
                                 key={component.id} 
                                 componentId={component.id} 
+                                value={component.value}
+                                selected={component.selected}
                                 updateComponentPositionOnDrag={updateComponentPositionOnDrag}
                                 updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}  
+                                onSwitchClicked={onSwitchClicked}
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
                               />
 
                     case ComponentType.OUTPUT:
                       return <Bulb 
                                 key={component.id} 
                                 componentId={component.id} 
+                                value={component.value}
+                                selected={component.selected}
                                 updateComponentPositionOnDrag={updateComponentPositionOnDrag}
                                 updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}
-                                />
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
+                              />
 
                     case ComponentType.JUNCTION:
                       return <Junction 
-                              key={component.id} 
-                              componentId={component.id} 
-                              updateComponentPositionOnDrag={updateComponentPositionOnDrag}
-                              updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}
+                                key={component.id} 
+                                componentId={component.id} 
+                                selected={component.selected}
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
                             />
                   
                     default:
@@ -130,6 +176,7 @@ export default function Playground() {
                           wire={wire} 
                           onNewWireToComponentConnection={onNewWireToComponentConnection}
                           onWireEndPointDragged={onWireEndPointDragged}
+                          onSelectOrDiselectWire={onSelectOrDeselectAWire}
                         />
                 })
               }

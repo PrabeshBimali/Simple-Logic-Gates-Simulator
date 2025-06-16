@@ -1,11 +1,11 @@
 import { OrGateProps } from "@/types/types";
 import Konva from "konva";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Shape, Circle, Group } from "react-konva";
 
 export default function OrGate(props: OrGateProps) {
 
-
+    const [selected, setSelected] = useState<boolean>(props.selected)
     const groupRef = useRef<Konva.Group | null>(null)
 
     useEffect((): void => {
@@ -13,6 +13,10 @@ export default function OrGate(props: OrGateProps) {
             updatePortsOnDragEnd()
         })
     }, [])
+
+    useEffect(() : void => {
+        setSelected(props.selected)
+    }, [props.selected])
 
     function updatePortsOnDragEnd(): void {
         if(!groupRef.current) {
@@ -27,6 +31,10 @@ export default function OrGate(props: OrGateProps) {
         props.updateConnectedWirePositionOnComponentDrag(props.componentId, groupRef.current.getAbsolutePosition().x, groupRef.current.getAbsolutePosition().y)
     }
 
+    function onComponentClicked() : void {
+        props.onSelectOrDeslectAComponent(props.componentId)
+    }
+
     const width = 120
     const height = 100
     const midHeight = height/2
@@ -35,7 +43,13 @@ export default function OrGate(props: OrGateProps) {
 
     return (
         <>
-            <Group x={100} y={120} draggable ref={groupRef} onDragMove={() => updatePortsOnDrag()} onDragEnd={() => updatePortsOnDragEnd()}>
+            <Group x={100} y={120} 
+                draggable ref={groupRef} 
+                onDragMove={() => updatePortsOnDrag()} 
+                onDragEnd={() => updatePortsOnDragEnd()}
+                onClick={() => onComponentClicked()}
+            >
+
                 <Shape
                     width={width}
                     height={height}
@@ -78,7 +92,8 @@ export default function OrGate(props: OrGateProps) {
                     }}
 
                     fill="#00D2FF"
-                    stroke="black"
+                    stroke={selected ? "blue" : "black"}
+                    shadowBlur={selected ? 5 : 0}
                     strokeWidth={2}
                 />
                 <Circle

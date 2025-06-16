@@ -88,11 +88,11 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
     [ComponentType.INPUT]: {
       x: 400,
       y: 400,
-      width: 20,
-      height: 20,
-      pinLength: 10,
-      outputx: 30,
-      outputy: 10
+      width: 30,
+      height: 30,
+      pinLength: 15,
+      outputx: 45,
+      outputy: 15
     },
     [ComponentType.OUTPUT]: {
       x: 400,
@@ -111,12 +111,12 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
     },
     [ComponentType.JUNCTION]: {
       portAx: 0,
-      portAy: -15,
+      portAy: -20,
       portBx: 0,
-      portBy: 15,
-      portCx: -15,
+      portBy: 20,
+      portCx: -20,
       portCy: 0,
-      portDx: 15,
+      portDx: 20,
       portDy: 0
     }
   };

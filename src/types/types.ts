@@ -22,29 +22,41 @@ export type WireProps = {
     ports: Port[],
     wire: WireType,
     onNewWireToComponentConnection: (portId: string, wireId: string) => void,
-    onWireEndPointDragged: (wireEndPointId: string, x: number, y: number) => void
+    onWireEndPointDragged: (wireEndPointId: string, x: number, y: number) => void,
+    onSelectOrDiselectWire: (wireId: string) => void
 }
 
 export type OrGateProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
     updateComponentPositionOnDrag: (componentId: string, x: number, y:number) => void,
     updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
-    componentId: string
+    componentId: string,
+    selected: boolean
 }
 
 export type BulbProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
     updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
-    componentId: string
+    componentId: string,
+    value: boolean | null,
+    selected: boolean
 }
 
 export type SwitchProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
     updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
-    componentId: string
+    onSwitchClicked(id: string): void,
+    value: boolean | null,
+    componentId: string,
+    selected: boolean
 }
 
 export type JunctionProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,
     updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
-    componentId: string
+    componentId: string,
+    selected: boolean
 }
