@@ -1,9 +1,9 @@
-import { AndGateProps } from "@/types/types";
+import { NotGateProps } from "@/types/types";
 import { Group, Shape, Circle } from "react-konva";
 import Konva from "konva";
-import { useRef, useEffect, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
-export default function And(props: AndGateProps) {
+export default function Not(props: NotGateProps) {
     
     const [selected, setSelected] = useState<boolean>(props.selected)
     const groupRef = useRef<Konva.Group | null>(null)
@@ -34,70 +34,50 @@ export default function And(props: AndGateProps) {
     function onComponentClicked() : void {
         props.onSelectOrDeslectAComponent(props.componentId)
     }
-
-  const width = 100;
-  const height = 100;
-  const radius = height / 2;
+  const width = 80;
+  const height = 80;
   const pinLength = 10;
-  const pinYOffset = 20;
   const midY = height / 2;
+  const bubbleRadius = 6;
 
   return (
     <Group 
         x={100} 
         y={100} 
-        draggable
         ref={groupRef}
+        draggable
         onDragEnd={updatePortsOnDragEnd}
         onDragMove={updatePortsOnDrag}
         onClick={onComponentClicked}
     >
+      {/* Triangle body with bubble */}
       <Shape
         width={width}
         height={height}
         sceneFunc={(context, shape) => {
-          const w = shape.width();
-          const h = shape.height();
-          const r = h / 2;
-
           context.beginPath();
 
-          // Left vertical line
+          // Triangle
           context.moveTo(0, 0);
-          context.lineTo(0, h);
-
-          // Bottom line to arc start
-          context.lineTo(w - r, h);
-
-          // Right arc
-          context.arc(w - r, h / 2, r, Math.PI / 2, -Math.PI / 2, true);
-
-          // Top line
-          context.lineTo(0, 0);
-
+          context.lineTo(0, height);
+          context.lineTo(width - bubbleRadius * 2, midY);
           context.closePath();
+
           context.fillStrokeShape(shape);
 
-          // Input pin A
+          // Input pin
           context.beginPath();
-          context.moveTo(-pinLength, pinYOffset);
-          context.lineTo(0, pinYOffset);
+          context.moveTo(-pinLength, midY);
+          context.lineTo(0, midY);
           context.stroke();
-          context.closePath()
+          context.closePath();
 
-          // Input pin B
+          // Output pin (after bubble)
           context.beginPath();
-          context.moveTo(-pinLength, h - pinYOffset);
-          context.lineTo(0, h - pinYOffset);
+          context.moveTo(width, midY);
+          context.lineTo(width + pinLength + 8, midY);
           context.stroke();
-          context.closePath()
-
-          // Output pin
-          context.beginPath();
-          context.moveTo(w, midY);
-          context.lineTo(w + pinLength, midY);
-          context.stroke();
-          context.closePath()
+          context.closePath();
         }}
         fill="#00D2FF"
         stroke={selected ? "blue" : "black"}
@@ -105,25 +85,27 @@ export default function And(props: AndGateProps) {
         strokeWidth={2}
       />
 
-      {/* Input A */}
+      {/* NOT bubble */}
+      <Circle
+        x={width - 6}
+        y={midY}
+        radius={bubbleRadius}
+        stroke="black"
+        strokeWidth={2}
+      />
+
+      {/* Input pin circle */}
       <Circle
         x={-pinLength}
-        y={pinYOffset}
+        y={midY}
         radius={7}
         stroke="blue"
         strokeWidth={3}
       />
-      {/* Input B */}
+
+      {/* Output pin circle */}
       <Circle
-        x={-pinLength}
-        y={height - pinYOffset}
-        radius={7}
-        stroke="blue"
-        strokeWidth={3}
-      />
-      {/* Output */}
-      <Circle
-        x={width + pinLength}
+        x={width + pinLength + 8}
         y={midY}
         radius={7}
         stroke="blue"

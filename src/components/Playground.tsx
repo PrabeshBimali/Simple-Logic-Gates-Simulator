@@ -10,6 +10,8 @@ import Toolbar from '@/components/Toolbar';
 import CircuitGraph, { Component, Port, WireType } from '@/logic/CircuitGraph';
 import Wire from './Wire';
 import Junction from './Junction';
+import And from './AndGate';
+import Not from './NotGate';
 
 export default function Playground() {
 
@@ -121,6 +123,26 @@ export default function Playground() {
                   switch (component.type) {
                     case ComponentType.OR:
                       return <OrGate 
+                                key={component.id} 
+                                componentId={component.id} 
+                                selected={component.selected}
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}              
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
+                              />
+
+                    case ComponentType.AND:
+                      return <And 
+                                key={component.id} 
+                                componentId={component.id} 
+                                selected={component.selected}
+                                updateComponentPositionOnDrag={updateComponentPositionOnDrag}
+                                updateConnectedWirePositionOnComponentDrag={updateConnectedWirePositionOnComponentDrag}              
+                                onSelectOrDeslectAComponent={onSelectOrDeselectAComponent}
+                              />
+                    
+                    case ComponentType.NOT:
+                      return <Not 
                                 key={component.id} 
                                 componentId={component.id} 
                                 selected={component.selected}

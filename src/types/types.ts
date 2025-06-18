@@ -34,6 +34,22 @@ export type OrGateProps = {
     selected: boolean
 }
 
+export type AndGateProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
+    updateComponentPositionOnDrag: (componentId: string, x: number, y:number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
+    componentId: string,
+    selected: boolean
+}
+
+export type NotGateProps = {
+    onSelectOrDeslectAComponent: (componentId: string) => void,
+    updateComponentPositionOnDrag: (componentId: string, x: number, y:number) => void,
+    updateConnectedWirePositionOnComponentDrag: (componentId: string, x: number, y: number) => void,
+    componentId: string,
+    selected: boolean
+}
+
 export type BulbProps = {
     onSelectOrDeslectAComponent: (componentId: string) => void,
     updateComponentPositionOnDrag: (componentId: string, x: number, y: number) => void,

@@ -162,6 +162,10 @@ export default class LogicDag {
 
             if(node.type === ComponentType.OR) {
                 this.evaluateOr(node)
+            } else if(node.type === ComponentType.AND) {
+                this.evaluateAnd(node)
+            } else if(node.type === ComponentType.NOT) {
+                this.evaluateNot(node)
             } else if(node.type === ComponentType.JUNCTION || node.type === ComponentType.OUTPUT) {
                 this.evaluateRest(node)
             }
@@ -258,6 +262,48 @@ export default class LogicDag {
         }
 
         node.value = inputNode1.value || inputNode2.value
+    }
+
+    private evaluateAnd(node: Node) {
+        if (node.parents.length < 2) {
+            node.value = null
+            return
+        }
+
+        const inputNode1: Node | undefined = this.nodes.get(node.parents[0]);
+        const inputNode2: Node | undefined = this.nodes.get(node.parents[1]);
+
+        if(!inputNode1 || !inputNode2) {
+            throw new Error(`Evaluate AND: Node with ID ${node.parents[0]} or Node with ID ${node.parents[1]} does not exist`)
+        }
+
+        if (inputNode1.value === null || inputNode2.value === null) {
+            node.value = null
+            return
+        }
+
+        node.value = inputNode1.value && inputNode2.value
+    }
+
+    private evaluateNot(node: Node) {
+        if (node.parents.length < 1) {
+            node.value = null
+            return
+        }
+
+        const inputNode: Node | undefined = this.nodes.get(node.parents[0]);
+
+        if(!inputNode) {
+            throw new Error(`Evaluate REST: Node with ID ${node.parents[0]} does not exist`)
+        }
+
+        if (inputNode.value === null) {
+            node.value = null
+            return
+        }
+
+        node.value = !inputNode.value
+
     }
 
     private evaluateRest(node: Node) {

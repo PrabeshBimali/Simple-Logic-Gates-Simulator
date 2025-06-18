@@ -16,6 +16,31 @@ export interface ORGateDimensions {
   outputy: number;
 }
 
+export interface ANDGateDimensions {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pinLength: number;
+  pinYOffset: number;
+  inputAx: number;
+  inputAy: number;
+  inputBx: number;
+  inputBy: number;
+  outputx: number;
+  outputy: number;
+}
+
+export interface NOTGateDimensions {
+  x: number;
+  y: number;
+  inputx: number,
+  inputy: number,
+  outputx: number,
+  outputy: number
+}
+
+
 export interface InputDimensions {
   x: number;
   y: number;
@@ -56,6 +81,8 @@ export interface JunctionDimensions {
 
 type ComponentTypeMap = {
   [ComponentType.OR]: ORGateDimensions;
+  [ComponentType.AND]: ANDGateDimensions;
+  [ComponentType.NOT]: NOTGateDimensions;
   [ComponentType.INPUT]: InputDimensions;
   [ComponentType.OUTPUT]: OutputDimensions;
   [ComponentType.WIRE]: WireDimensions;
@@ -84,6 +111,28 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
       inputBy: gateHeight - ioPinYOffset,
       outputx: gateWidth + ioPinLength,
       outputy: gateHeight / 2
+    },
+    [ComponentType.AND]: {
+      x: 400,
+      y: 400,
+      width: 100,
+      height: 100,
+      pinLength: ioPinLength,
+      pinYOffset: ioPinYOffset,
+      inputAx: -ioPinLength,
+      inputAy: ioPinYOffset,
+      inputBx: -ioPinLength,
+      inputBy: 100 - ioPinYOffset,
+      outputx: 100 + ioPinLength,
+      outputy: 100 / 2
+    },
+    [ComponentType.NOT]: {
+      x: 400,
+      y: 400,
+      inputx: -10,
+      inputy: 40,
+      outputx: 98,
+      outputy: 40
     },
     [ComponentType.INPUT]: {
       x: 400,

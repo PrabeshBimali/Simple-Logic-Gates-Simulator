@@ -3,6 +3,8 @@ import { ComponentType, ToolbarProps } from "@/types/types"
 
 const componentTypes: { type: ComponentType; label: string }[] = [
   { type: ComponentType.OR, label: "OR" },
+  { type: ComponentType.AND, label: "AND" },
+  { type: ComponentType.NOT, label: "NOT" },
   { type: ComponentType.INPUT, label: "Input" },
   { type: ComponentType.OUTPUT, label: "Output" },
   { type: ComponentType.WIRE, label: "Wire" },

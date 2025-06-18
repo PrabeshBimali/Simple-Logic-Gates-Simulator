@@ -1,5 +1,5 @@
 import { ComponentType } from "@/types/types"
-import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions, JunctionDimensions } from "./componentTemplates";
+import { InputDimensions, ORGateDimensions, OutputDimensions, startPositionAndDimension, WireDimensions, JunctionDimensions, ANDGateDimensions, NOTGateDimensions } from "./componentTemplates";
 import LogicDag from "./LogicDAG";
 
 export interface Component {
@@ -55,6 +55,8 @@ export default class CircuitGraph {
 
     // variables for initial dimensions
     private orGateDimensions: ORGateDimensions;
+    private andGateDimensions: ANDGateDimensions;
+    private notGateDimensions: NOTGateDimensions;
     private inputDimensions: InputDimensions;
     private outputDimensions: OutputDimensions;
     private wireDimensions: WireDimensions;
@@ -75,6 +77,8 @@ export default class CircuitGraph {
         this.numberOFIdsForEachComponent.set(ComponentType.JUNCTION, 0)
 
         this.orGateDimensions = startPositionAndDimension(ComponentType.OR)
+        this.andGateDimensions = startPositionAndDimension(ComponentType.AND)
+        this.notGateDimensions = startPositionAndDimension(ComponentType.NOT)
         this.inputDimensions = startPositionAndDimension(ComponentType.INPUT)
         this.outputDimensions = startPositionAndDimension(ComponentType.OUTPUT)
         this.wireDimensions = startPositionAndDimension(ComponentType.WIRE)
@@ -93,13 +97,15 @@ export default class CircuitGraph {
     }
 
     addPort(component: Component) : void {
-        if(component.type === ComponentType.OR) {
+        if(component.type === ComponentType.OR || component.type === ComponentType.AND) {
+            const dimensions: ORGateDimensions | ANDGateDimensions = startPositionAndDimension(component.type)
+
             const inputPort1: Port = {
                id: `${component.id}$A`,
                parentId: component.id,
                connected: false,
-               x: component.x + this.orGateDimensions.inputAx,
-               y: component.y + this.orGateDimensions.inputAy,
+               x: component.x + dimensions.inputAx,
+               y: component.y + dimensions.inputAy,
                direction: "INPUT",
                connectedWiresEndPoints: []
             }
@@ -108,8 +114,8 @@ export default class CircuitGraph {
                 id: `${component.id}$B`,
                 parentId: component.id,
                 connected: false,
-                x: component.x + this.orGateDimensions.inputBx,
-                y: component.y + this.orGateDimensions.inputBy,
+                x: component.x + dimensions.inputBx,
+                y: component.y + dimensions.inputBy,
                 direction: "INPUT",
                 connectedWiresEndPoints: []
             }
@@ -118,8 +124,8 @@ export default class CircuitGraph {
                 id: `${component.id}$C`,
                 parentId: component.id,
                 connected: false,
-                x: component.x + this.orGateDimensions.outputx,
-                y: component.y + this.orGateDimensions.outputy,
+                x: component.x + dimensions.outputx,
+                y: component.y + dimensions.outputy,
                 direction: "OUTPUT",
                 connectedWiresEndPoints: []
             }
@@ -128,8 +134,35 @@ export default class CircuitGraph {
             this.ports.set(inputPort2.id, inputPort2);
             this.ports.set(outputPort.id, outputPort);
             component.ports.push(inputPort1.id, inputPort2.id, outputPort.id)
+        
+        } else if(component.type === ComponentType.NOT) {
+
+            const inputPort: Port = {
+                id: `${component.id}$A`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.notGateDimensions.inputx,
+                y: component.y + this.notGateDimensions.inputy,
+                direction: "INPUT",
+                connectedWiresEndPoints: []
+            };
+            
+            const outPutPort: Port = {
+                id: `${component.id}$B`,
+                parentId: component.id,
+                connected: false,
+                x: component.x + this.notGateDimensions.outputx,
+                y: component.y + this.notGateDimensions.outputy,
+                direction: "OUTPUT",
+                connectedWiresEndPoints: []
+            };
+
+            this.ports.set(inputPort.id, inputPort);
+            this.ports.set(outPutPort.id, outPutPort)
+            component.ports.push(inputPort.id, outPutPort.id)
 
         } else if(component.type === ComponentType.INPUT) {
+
             const port: Port = {
                 id: `${component.id}$A`,
                 parentId: component.id,
@@ -468,24 +501,32 @@ export default class CircuitGraph {
         }
 
         //update port position
-        if (componentType === ComponentType.OR) {
+        if (componentType === ComponentType.OR || componentType === ComponentType.AND) {
             const id: string = portId.split("$")[1]
+            const dimensions: ORGateDimensions | ANDGateDimensions = startPositionAndDimension(componentType)
 
             if (id === "A") {
-                port.x = x + this.orGateDimensions.inputAx
-                port.y = y + this.orGateDimensions.inputAy
+                port.x = x + dimensions.inputAx
+                port.y = y + dimensions.inputAy
+            } else if (id === "B") {
+                port.x = x + dimensions.inputBx
+                port.y = y + dimensions.inputBy
+            } else if (id === "C") {
+                port.x = x + dimensions.outputx
+                port.y = y + dimensions.outputy
             }
+        } else if(componentType === ComponentType.NOT) {
 
-            if (id === "B") {
-                port.x = x + this.orGateDimensions.inputBx
-                port.y = y + this.orGateDimensions.inputBy
+            const id: string = portId.split("$")[1]
+
+            if(id === "A") {
+                port.x = x + this.notGateDimensions.inputx
+                port.y = y + this.notGateDimensions.inputy
+
+            } else if(id === "B") {
+                port.x = x + this.notGateDimensions.outputx
+                port.y = y + this.notGateDimensions.outputy
             }
-
-            if (id === "C") {
-                port.x = x + this.orGateDimensions.outputx
-                port.y = y + this.orGateDimensions.outputy
-            }
-
 
         } else if (componentType === ComponentType.INPUT) {
 
@@ -540,6 +581,7 @@ export default class CircuitGraph {
         }
 
         console.log(this.ports)
+        console.log(this.wireEndPoints)
     }
 
     updateConnectedWireEndPointPositionOnComponentDrag(componentId: string, x: number, y: number) {
@@ -566,11 +608,20 @@ export default class CircuitGraph {
 
                 this.updateConnectedWireEndPointPositionOnOrGateDrag(port, x, y)
 
-            } else if(component.type === ComponentType.INPUT) {
+            } else if(component.type === ComponentType.AND) {
+                
+                this.updateConnectedWireEndPointPositionOnAndGateDrag(port, x, y)
+
+            } else if(component.type === ComponentType.NOT) {
+
+                this.updateConnectedWireEndPointPositionOnNotGateDrag(port, x, y)
+
+            } 
+            else if(component.type === ComponentType.INPUT) {
 
                 this.updateConnectedWireEndPointPositionOnInputDrag(port, x, y)
 
-            } else if(component.type === ComponentType.OUTPUT) {
+            }  else if(component.type === ComponentType.OUTPUT) {
 
                 this.updateConnectedWireEndPointPositionOnOutputDrag(port, x, y)
 
@@ -628,6 +679,41 @@ export default class CircuitGraph {
         } else if(uniquePort === "C") {
             port.x = componentX + this.orGateDimensions.outputx
             port.y = componentY + this.orGateDimensions.outputy
+        }
+
+        this.updateConnectedWireEndPointsToPortPositionsOnDrag(port)
+    }
+    
+    updateConnectedWireEndPointPositionOnAndGateDrag(port: Port, componentX: number, componentY: number) {
+        const portId: string = port.id
+
+        const uniquePort: string = portId.split("$")[1]
+
+        if(uniquePort === "A") {
+            port.x = componentX + this.andGateDimensions.inputAx
+            port.y = componentY + this.andGateDimensions.inputAy
+        } else if (uniquePort === "B") {
+            port.x = componentX + this.andGateDimensions.inputBx
+            port.y = componentY + this.andGateDimensions.inputBy
+        } else if(uniquePort === "C") {
+            port.x = componentX + this.andGateDimensions.outputx
+            port.y = componentY + this.andGateDimensions.outputy
+        }
+
+        this.updateConnectedWireEndPointsToPortPositionsOnDrag(port)
+    }
+    
+    updateConnectedWireEndPointPositionOnNotGateDrag(port: Port, componentX: number, componentY: number) {
+        const portId: string = port.id
+
+        const uniquePort: string = portId.split("$")[1]
+
+        if(uniquePort === "A") {
+            port.x = componentX + this.notGateDimensions.inputx
+            port.y = componentY + this.notGateDimensions.inputy
+        } else if (uniquePort === "B") {
+            port.x = componentX + this.notGateDimensions.outputx
+            port.y = componentY + this.notGateDimensions.outputy
         }
 
         this.updateConnectedWireEndPointsToPortPositionsOnDrag(port)
