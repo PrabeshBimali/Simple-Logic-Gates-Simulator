@@ -426,12 +426,7 @@ export default class CircuitGraph {
         }
 
         if(wire.connectedTo || wire.connectedFrom) {
-            try{
-                this.addNewConnectionOnDag(port, wire)
-            } catch(e) {
-                console.error(e)
-                return
-            }
+            this.addNewConnectionOnDag(port, wire)
         }
 
         port.connectedWiresEndPoints.push(wireEndPoint.id)

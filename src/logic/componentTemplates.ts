@@ -153,9 +153,9 @@ export function startPositionAndDimension<T extends keyof ComponentTypeMap>(
     [ComponentType.WIRE]: {
       x: 0,
       y: 0,
-      x1: 50,
+      x1: 210,
       y1: 120,
-      x2: 210,
+      x2: 300,
       y2: 120
     },
     [ComponentType.JUNCTION]: {
