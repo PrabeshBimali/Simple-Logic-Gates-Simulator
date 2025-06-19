@@ -33,3 +33,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Drag and zoom in/out on Canvas stage (urgent)
 - Able to rotate components
 - Make junction occupy less space
+
+## Try it live
+
+https://simple-logicgates-sim-psi.vercel.app/

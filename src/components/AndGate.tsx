@@ -4,6 +4,7 @@ import Konva from "konva";
 import { useRef, useEffect, useState } from "react";
 
 export default function And(props: AndGateProps) {
+
     
     const [selected, setSelected] = useState<boolean>(props.selected)
     const groupRef = useRef<Konva.Group | null>(null)
