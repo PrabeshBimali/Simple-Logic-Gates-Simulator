@@ -135,20 +135,6 @@ export default function Playground() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  //const updateCanvas = () : void => {
-  //    if (canvasContainerRef.current) {
-  //      const { offsetWidth, offsetHeight } = canvasContainerRef.current;
-  //      setDimensions({ width: offsetWidth, height: offsetHeight });
-  //    }
-  //  };
-
-  //// TODO: FIX canvas size on resize
-  //useEffect(() => {
-  //  updateCanvas();
-  //  window.addEventListener("resize", updateCanvas);
-  //  return () => window.removeEventListener("resize", updateCanvas);
-  //}, []);
-
   const updateCanvas = () : void => {
     if (canvasContainerRef.current) {
       const { clientWidth, clientHeight } = canvasContainerRef.current;
